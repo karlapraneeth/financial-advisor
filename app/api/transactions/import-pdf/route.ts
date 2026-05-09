@@ -51,8 +51,12 @@ export async function POST(req: Request) {
 
     // Send to LLM for transaction extraction
     const llm = getLLM();
-    // 8k output tokens — enough for 100+ transactions in JSON
-    const raw = await llm.generate(PDF_PARSER_SYSTEM_PROMPT, buildPdfUserPrompt(text), { maxTokens: 8000 });
+    // Use llama-3.1-8b-instant: 30k TPM on Groq free tier (vs 12k for 70b).
+    // 4k output tokens handles ~50 transactions; fast and accurate for extraction.
+    const raw = await llm.generate(PDF_PARSER_SYSTEM_PROMPT, buildPdfUserPrompt(text), {
+      model: 'llama-3.1-8b-instant',
+      maxTokens: 4000,
+    });
 
     let result: LLMParseResult;
     try {

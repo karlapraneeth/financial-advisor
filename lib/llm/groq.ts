@@ -11,7 +11,7 @@ interface GroqResponse {
 
 export class GroqProvider implements LLMProvider {
   private readonly apiKey: string;
-  private readonly model = 'llama-3.3-70b-versatile';
+  private readonly defaultModel = 'llama-3.3-70b-versatile';
 
   constructor() {
     const key = process.env.GROQ_API_KEY;
@@ -32,7 +32,7 @@ export class GroqProvider implements LLMProvider {
         Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({
-        model: this.model,
+        model: options?.model ?? this.defaultModel,
         messages,
         response_format: { type: 'json_object' },
         temperature: 0.3,

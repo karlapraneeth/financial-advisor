@@ -1,5 +1,7 @@
 export interface LLMOptions {
   maxTokens?: number;
+  /** Override the default model for this specific call */
+  model?: string;
 }
 
 export interface LLMProvider {

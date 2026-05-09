@@ -26,7 +26,34 @@ OUTPUT FORMAT — return ONLY this JSON, no other text:
   "parse_notes": "string — note anything unusual, ambiguous, or skipped"
 }`;
 
-export const buildPdfUserPrompt = (text: string) =>
-  `Here is the extracted text from the bank statement PDF. Parse all transactions:\n\n${text.slice(0, 80000)}`;
-// 80k chars ≈ 20k tokens — covers multi-page statements while staying well
-// inside Groq llama-3.3-70b's 128k token context window.
+/**
+ * Find where the transaction section starts in a bank statement.
+ * Most statements have a summary page first, then a detailed transaction list.
+ * We look for common section headers, or fall back to the first line that
+ * looks like a transaction (date + description + amount).
+ */
+function findTransactionStart(text: string): number {
+  const headers = [
+    /transaction[s]?\s+(date|activity|detail|history)/i,
+    /account\s+activity/i,
+    /purchases\s+and\s+other\s+charges/i,
+    /payments?\s+and\s+credits?/i,
+    /date\s+description\s+amount/i,
+    /date\s+merchant/i,
+  ];
+  for (const re of headers) {
+    const m = text.search(re);
+    if (m !== -1) return m;
+  }
+  // Fallback: find first line that looks like MM/DD followed by text and a dollar amount
+  const lineMatch = text.search(/\b\d{1,2}\/\d{1,2}\b.{5,80}\$?\s*[\d,]+\.\d{2}/);
+  return lineMatch !== -1 ? Math.max(0, lineMatch - 200) : 0;
+}
+
+export const buildPdfUserPrompt = (text: string) => {
+  // Skip the summary section and start from where transactions begin.
+  // This saves tokens and avoids confusing the LLM with running totals.
+  const start = findTransactionStart(text);
+  const relevant = text.slice(start, start + 24000); // ~6k tokens of transaction data
+  return `Here is the extracted text from the bank statement PDF. Parse all transactions:\n\n${relevant}`;
+};
