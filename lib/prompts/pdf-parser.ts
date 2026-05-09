@@ -27,5 +27,6 @@ OUTPUT FORMAT — return ONLY this JSON, no other text:
 }`;
 
 export const buildPdfUserPrompt = (text: string) =>
-  `Here is the extracted text from the bank statement PDF. Parse all transactions:\n\n${text.slice(0, 12000)}`;
-// Slice to 12k chars — well within Groq's context while covering most statements
+  `Here is the extracted text from the bank statement PDF. Parse all transactions:\n\n${text.slice(0, 80000)}`;
+// 80k chars ≈ 20k tokens — covers multi-page statements while staying well
+// inside Groq llama-3.3-70b's 128k token context window.

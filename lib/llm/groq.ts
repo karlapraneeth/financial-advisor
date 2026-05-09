@@ -1,4 +1,4 @@
-import type { LLMProvider } from './index';
+import type { LLMProvider, LLMOptions } from './index';
 
 interface GroqMessage {
   role: 'system' | 'user' | 'assistant';
@@ -19,7 +19,7 @@ export class GroqProvider implements LLMProvider {
     this.apiKey = key;
   }
 
-  async generate(systemPrompt: string, userPrompt: string): Promise<string> {
+  async generate(systemPrompt: string, userPrompt: string, options?: LLMOptions): Promise<string> {
     const messages: GroqMessage[] = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -36,7 +36,7 @@ export class GroqProvider implements LLMProvider {
         messages,
         response_format: { type: 'json_object' },
         temperature: 0.3,
-        max_tokens: 2000,
+        max_tokens: options?.maxTokens ?? 2000,
       }),
     });
 

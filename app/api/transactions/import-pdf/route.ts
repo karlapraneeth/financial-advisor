@@ -51,7 +51,8 @@ export async function POST(req: Request) {
 
     // Send to LLM for transaction extraction
     const llm = getLLM();
-    const raw = await llm.generate(PDF_PARSER_SYSTEM_PROMPT, buildPdfUserPrompt(text));
+    // 8k output tokens — enough for 100+ transactions in JSON
+    const raw = await llm.generate(PDF_PARSER_SYSTEM_PROMPT, buildPdfUserPrompt(text), { maxTokens: 8000 });
 
     let result: LLMParseResult;
     try {

@@ -1,5 +1,9 @@
+export interface LLMOptions {
+  maxTokens?: number;
+}
+
 export interface LLMProvider {
-  generate(systemPrompt: string, userPrompt: string): Promise<string>;
+  generate(systemPrompt: string, userPrompt: string, options?: LLMOptions): Promise<string>;
 }
 
 export function getLLM(): LLMProvider {
