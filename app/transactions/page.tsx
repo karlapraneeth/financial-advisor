@@ -178,14 +178,25 @@ export default function TransactionsPage() {
           </Select>
           <input ref={pdfFileRef} type="file" accept=".pdf" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
           {pdfResult && (
-            <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
-              {pdfResult.statement_period && <p className="text-gray-600">Period: <span className="font-medium">{pdfResult.statement_period}</span></p>}
-              {pdfResult.account_name && <p className="text-gray-600">Account: <span className="font-medium">{pdfResult.account_name}</span></p>}
-              <p className="text-emerald-700 font-medium">✓ Imported: {pdfResult.imported} transactions</p>
-              {pdfResult.skipped > 0 && <p className="text-yellow-700">Skipped: {pdfResult.skipped}</p>}
-              {pdfResult.parse_notes && <p className="text-gray-500 text-xs italic">{pdfResult.parse_notes}</p>}
-              {pdfResult.errors?.slice(0, 5).map((e, i) => <p key={i} className="text-red-600 text-xs">{e}</p>)}
-            </div>
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (pdfResult as any).error ? (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                ✗ Error: {(pdfResult as any).error}
+              </div>
+            ) : (
+              <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
+                {pdfResult.statement_period && <p className="text-gray-600">Period: <span className="font-medium">{pdfResult.statement_period}</span></p>}
+                {pdfResult.account_name && <p className="text-gray-600">Account: <span className="font-medium">{pdfResult.account_name}</span></p>}
+                {pdfResult.imported > 0
+                  ? <p className="text-emerald-700 font-medium">✓ Imported: {pdfResult.imported} transactions</p>
+                  : <p className="text-yellow-700 font-medium">⚠ 0 transactions imported — see notes below</p>
+                }
+                {pdfResult.skipped > 0 && <p className="text-yellow-700">Skipped: {pdfResult.skipped}</p>}
+                {pdfResult.parse_notes && <p className="text-gray-500 text-xs italic">{pdfResult.parse_notes}</p>}
+                {pdfResult.errors?.slice(0, 5).map((e, i) => <p key={i} className="text-red-600 text-xs">{e}</p>)}
+              </div>
+            )
           )}
           {importing && (
             <div className="flex items-center gap-2 text-sm text-indigo-600">
