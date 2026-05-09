@@ -34,13 +34,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'File must be a PDF' }, { status: 400 });
     }
 
-    // Extract text from PDF using pdf-parse
+    // Extract text from PDF using pdf-parse v2
+    // v2 API: new PDFParse({ data: buffer }).getText()
     const buffer = Buffer.from(await file.arrayBuffer());
-    // Dynamic import avoids Next.js edge-runtime issues with pdf-parse
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pdfMod = await import('pdf-parse') as any;
-    const pdfParse = pdfMod.default ?? pdfMod;
-    const parsed = await pdfParse(buffer);
+    const { PDFParse } = await import('pdf-parse');
+    const parser = new PDFParse({ data: buffer });
+    const parsed = await parser.getText();
     const text = parsed.text;
 
     if (!text || text.trim().length < 50) {
