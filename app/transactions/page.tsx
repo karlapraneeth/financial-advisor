@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, Plus } from 'lucide-react';
+import { Upload, FileText, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
@@ -43,13 +43,17 @@ export default function TransactionsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [pdfImportOpen, setPdfImportOpen] = useState(false);
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   const [filterAccount, setFilterAccount] = useState('');
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null);
+  const [pdfResult, setPdfResult] = useState<{ imported: number; skipped: number; statement_period?: string | null; account_name?: string | null; parse_notes?: string; errors: string[] } | null>(null);
   const [importAccountId, setImportAccountId] = useState('');
+  const [pdfAccountId, setPdfAccountId] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const pdfFileRef = useRef<HTMLInputElement>(null);
 
   async function loadAccounts() {
     const res = await fetch('/api/accounts');
@@ -74,6 +78,21 @@ export default function TransactionsPage() {
     load();
   }
 
+  async function handlePdfImport() {
+    const file = pdfFileRef.current?.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setPdfResult(null);
+    const form = new FormData();
+    form.append('file', file);
+    if (pdfAccountId) form.append('account_id', pdfAccountId);
+    const res = await fetch('/api/transactions/import-pdf', { method: 'POST', body: form });
+    const data = await res.json();
+    setPdfResult(data);
+    setImporting(false);
+    load();
+  }
+
   async function handleImport() {
     const file = fileRef.current?.files?.[0];
     if (!file) return;
@@ -95,6 +114,7 @@ export default function TransactionsPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
         <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setPdfImportOpen(true)}><FileText size={16} /> Import PDF</Button>
           <Button variant="secondary" onClick={() => setImportOpen(true)}><Upload size={16} /> Import CSV</Button>
           <Button onClick={() => setModalOpen(true)}><Plus size={16} /> Add</Button>
         </div>
@@ -143,6 +163,43 @@ export default function TransactionsPage() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Add Transaction">
         <TransactionForm accounts={accounts} onSubmit={handleSubmit} onCancel={() => setModalOpen(false)} />
+      </Modal>
+
+      {/* PDF Import Modal */}
+      <Modal open={pdfImportOpen} onClose={() => { setPdfImportOpen(false); setPdfResult(null); }} title="Import PDF Bank Statement" className="max-w-lg">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500">
+            Upload a PDF bank statement. The AI will extract all transactions automatically.
+            Works best with digital PDFs — scanned images may not parse correctly.
+          </p>
+          <Select id="pdf_account" label="Account (optional)" value={pdfAccountId} onChange={(e) => setPdfAccountId(e.target.value)}>
+            <option value="">— None —</option>
+            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </Select>
+          <input ref={pdfFileRef} type="file" accept=".pdf" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+          {pdfResult && (
+            <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
+              {pdfResult.statement_period && <p className="text-gray-600">Period: <span className="font-medium">{pdfResult.statement_period}</span></p>}
+              {pdfResult.account_name && <p className="text-gray-600">Account: <span className="font-medium">{pdfResult.account_name}</span></p>}
+              <p className="text-emerald-700 font-medium">✓ Imported: {pdfResult.imported} transactions</p>
+              {pdfResult.skipped > 0 && <p className="text-yellow-700">Skipped: {pdfResult.skipped}</p>}
+              {pdfResult.parse_notes && <p className="text-gray-500 text-xs italic">{pdfResult.parse_notes}</p>}
+              {pdfResult.errors?.slice(0, 5).map((e, i) => <p key={i} className="text-red-600 text-xs">{e}</p>)}
+            </div>
+          )}
+          {importing && (
+            <div className="flex items-center gap-2 text-sm text-indigo-600">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-600 border-t-transparent" />
+              Parsing PDF with AI… this takes ~10 seconds
+            </div>
+          )}
+          <div className="flex gap-3">
+            <Button onClick={handlePdfImport} disabled={importing} className="flex-1">
+              {importing ? 'Parsing…' : 'Parse & Import'}
+            </Button>
+            <Button variant="secondary" onClick={() => { setPdfImportOpen(false); setPdfResult(null); }} className="flex-1">Close</Button>
+          </div>
+        </div>
       </Modal>
 
       <Modal open={importOpen} onClose={() => { setImportOpen(false); setImportResult(null); }} title="Import CSV" className="max-w-lg">
