@@ -65,11 +65,38 @@ export interface Goal {
   priority: number;
 }
 
+/** Spending breakdown derived from the last N days of imported transactions */
+export interface CategorySpend {
+  category: string;
+  amount: number;   // always positive (absolute spend)
+  count: number;
+}
+
+export interface TopMerchant {
+  description: string;
+  amount: number;   // always positive
+  count: number;
+}
+
+export interface TransactionSummary {
+  period_days: number;             // window used (e.g. 30)
+  period_start: string;            // YYYY-MM-DD
+  period_end: string;              // YYYY-MM-DD
+  total_spend: number;             // sum of outflows (positive number)
+  total_income_detected: number;   // sum of inflows (positive number)
+  by_category: CategorySpend[];    // sorted by amount desc
+  top_merchants: TopMerchant[];    // top 10 by total spend
+  uncategorized_spend: number;     // spend with no category label
+  transaction_count: number;
+}
+
 export interface FinancialSnapshot {
   user: User;
   accounts: Account[];
   expenses: FixedExpense[];
   goals: Goal[];
+  /** Null when no transactions have been imported yet */
+  spending: TransactionSummary | null;
   derived: {
     total_assets: number;
     total_debt: number;
